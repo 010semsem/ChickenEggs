@@ -24,7 +24,7 @@ public class Chicken extends AnimListener {
     int eggOwnerIndex;
     int eggSpeed = 1;
 
-    String textureNames[] = {"","","","","Back.png"};
+    String textureNames[] = {"EggsBasket.png","Egg.png","","","Back.png"};
     TextureReader.Texture texture[] = new TextureReader.Texture[textureNames.length];
     int textures[] = new int[textureNames.length];
 
@@ -142,7 +142,7 @@ public class Chicken extends AnimListener {
         eggY -= eggSpeed;
 
 
-        if (Math.abs(eggX - xPlayer) < 8 && Math.abs(eggY - yPlayer) < 8) {
+        if (Math.abs(eggX - xPlayer) < 5 && Math.abs(eggY - yPlayer) < 8) {
             eggActive = false;
             return;
         }
