@@ -20,11 +20,11 @@ public class test extends JFrame {
         glcanvas.addGLEventListener(listener);
         glcanvas.addKeyListener(listener);
         getContentPane().add(glcanvas, BorderLayout.CENTER);
-        animator = new FPSAnimator(15);
+        animator = new FPSAnimator(30);
         animator.add(glcanvas);
         animator.start();
 
-        setTitle("solider Test");
+        setTitle("Test");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(700, 700);
         setLocationRelativeTo(null);

@@ -1,10 +1,10 @@
-//import AnimListener;
+
 import Texture.TextureReader;
 import java.awt.event.*;
 import java.io.IOException;
 import javax.media.opengl.*;
-
 import java.util.BitSet;
+import java.util.Random;
 import javax.media.opengl.glu.GLU;
 
 public class Chicken extends AnimListener {
@@ -12,7 +12,17 @@ public class Chicken extends AnimListener {
 
     int maxWidth = 100;
     int maxHeight = 100;
-    int xPlayer = maxWidth/2, yPlayer = maxHeight/2;
+    int xPlayer = 50, yPlayer = 20;
+
+    Random rand = new Random();
+    int chickenCount =5;
+    int chickenX[] = {10, 30, 50, 70, 90};
+    int chickenY = 90;
+
+    boolean eggActive = false;
+    int eggX, eggY;
+    int eggOwnerIndex;
+    int eggSpeed = 1;
 
     String textureNames[] = {"","","","","Back.png"};
     TextureReader.Texture texture[] = new TextureReader.Texture[textureNames.length];
@@ -21,9 +31,9 @@ public class Chicken extends AnimListener {
     public void init(GLAutoDrawable gld) {
 
         GL gl = gld.getGL();
-        gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);    //This Will Clear The Background Color To Black
+        gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-        gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
+        gl.glEnable(GL.GL_TEXTURE_2D);
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
         gl.glGenTextures(textureNames.length, textures, 0);
 
@@ -57,8 +67,25 @@ public class Chicken extends AnimListener {
         DrawBackground(gl);
         handleKeyPress();
 
-        //DrawSprite(gl, ((xPlayer/(maxWidth/2))-0.9), (yPlayer/(maxHeight/2)-1.7), 0, 1);
+        for(int i=0; i<chickenCount; i++){
+            DrawSprite(gl, chickenX[i], chickenY, 2, 1);
+        }
+
         DrawSprite(gl, xPlayer,yPlayer, 0, 1);
+
+        if (!eggActive) {
+            eggOwnerIndex = rand.nextInt(chickenCount);
+            eggX = chickenX[eggOwnerIndex];
+            eggY = chickenY;
+            eggActive = true;
+        }
+
+        if (eggActive) {
+            DrawSprite(gl, eggX, eggY, 1, 0.7f);
+            updateEgg();
+        }
+
+
     }
 
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
@@ -71,8 +98,8 @@ public class Chicken extends AnimListener {
         gl.glEnable(GL.GL_BLEND);
         gl.glBindTexture(GL.GL_TEXTURE_2D, textures[index]);
         gl.glPushMatrix();
-       gl.glTranslated(x/(maxWidth/2)-1, y/(maxHeight/2.0) - 1.6, 0);
-       // gl.glTranslated( x , y , 0);
+       gl.glTranslated(x/(maxWidth/2)-1, y/(maxHeight/2.0) - 1, 0);
+
         gl.glScaled(0.1*scale, 0.1*scale, 1);
 
         gl.glBegin(GL.GL_QUADS);
@@ -96,7 +123,7 @@ public class Chicken extends AnimListener {
 
         gl.glPushMatrix();
         gl.glBegin(GL.GL_QUADS);
-        // Front Face
+
         gl.glTexCoord2f(0.0f, 0.0f);
         gl.glVertex3f(-1.0f, -1.0f, -1.0f);
         gl.glTexCoord2f(1.0f, 0.0f);
@@ -111,9 +138,21 @@ public class Chicken extends AnimListener {
         gl.glDisable(GL.GL_BLEND);
     }
 
-    /*
-     * KeyListener
-     */
+    public void updateEgg() {
+        eggY -= eggSpeed;
+
+
+        if (Math.abs(eggX - xPlayer) < 8 && Math.abs(eggY - yPlayer) < 8) {
+            eggActive = false;
+            return;
+        }
+
+
+        if (eggY <= 0) {
+            eggActive = false;
+        }
+    }
+
 
     public void handleKeyPress() {
 
@@ -146,7 +185,7 @@ public class Chicken extends AnimListener {
 
     @Override
     public void keyTyped(final KeyEvent event) {
-        // don't care 
+
     }
 
     public boolean isKeyPressed(final int keyCode) {
