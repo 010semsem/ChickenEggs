@@ -6,9 +6,9 @@ import javax.media.opengl.*;
 import java.util.BitSet;
 import java.util.Random;
 import javax.media.opengl.glu.GLU;
-
+import com.sun.opengl.util.GLUT;
 public class Chicken extends AnimListener {
-
+    GLUT glut = new GLUT();
 
     int maxWidth = 100;
     int maxHeight = 100;
@@ -20,9 +20,14 @@ public class Chicken extends AnimListener {
     int chickenY = 90;
 
     boolean eggActive = false;
-    int eggX, eggY;
-    int eggOwnerIndex;
+    int[] eggX = new int[chickenCount];
+    int[] eggY = new int[chickenCount];
+    boolean[] chickenHasEgg = new boolean[chickenCount];
+    int activeChicken = -1;
     int eggSpeed = 1;
+
+    int score = 0;
+    int highScore = 0;
 
     String textureNames[] = {"EggsBasket.png","Egg.png","","","Back.png"};
     TextureReader.Texture texture[] = new TextureReader.Texture[textureNames.length];
@@ -74,20 +79,15 @@ public class Chicken extends AnimListener {
         DrawSprite(gl, xPlayer,yPlayer, 0, 1);
 
         if (!eggActive) {
-            eggOwnerIndex = rand.nextInt(chickenCount);
-            eggX = chickenX[eggOwnerIndex];
-            eggY = chickenY;
-            eggActive = true;
+            spawnEggFromRandomChicken();
         }
+        if (eggActive && activeChicken != -1) {
 
-        if (eggActive) {
-            DrawSprite(gl, eggX, eggY, 1, 0.7f);
-            updateEgg();
+            DrawSprite(gl, eggX[activeChicken], eggY[activeChicken], 1, 0.7f);
+            updateEgg(activeChicken);
         }
-
-
+        drawScore(gl);
     }
-
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
     }
 
@@ -138,21 +138,51 @@ public class Chicken extends AnimListener {
         gl.glDisable(GL.GL_BLEND);
     }
 
-    public void updateEgg() {
-        eggY -= eggSpeed;
+    public void updateEgg(int index) {
 
+        eggY[index] -= eggSpeed;
+        if (eggY[index] <= yPlayer + 10 && eggY[index] >= yPlayer+5 ) {
+            if (Math.abs(eggX[index] - xPlayer) <10) {
 
-        if (Math.abs(eggX - xPlayer) < 5 && Math.abs(eggY - yPlayer) < 8) {
-            eggActive = false;
-            return;
+                score++;
+                if (score > highScore) {
+                    highScore = score;
+                }
+
+                chickenHasEgg[index] = false;
+                eggActive = false;
+                activeChicken = -1;
+                return;
+            }
         }
-
-
-        if (eggY <= 0) {
+        if (eggY[index] <= 0) {
+            chickenHasEgg[index] = false;
             eggActive = false;
+            activeChicken = -1;
         }
     }
+    public void spawnEggFromRandomChicken() {
+        activeChicken = rand.nextInt(chickenCount);
+        eggX[activeChicken] = chickenX[activeChicken];
+        eggY[activeChicken] = chickenY;
+        chickenHasEgg[activeChicken] = true;
+        eggActive = true;
+    }
 
+    public void drawScore(GL gl) {
+        gl.glColor3f(1.0f, 0.0f, 0.0f);
+        gl.glRasterPos2f(-0.95f, -0.8f);
+        String scoreText = "Score: " + score;
+        for (int i = 0; i < scoreText.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, scoreText.charAt(i));
+        }
+        String highScoreText = "High Score: " + highScore;
+        gl.glRasterPos2f(-0.95f, -0.9f);
+        for (int i = 0; i < highScoreText.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, highScoreText.charAt(i));
+        }
+        gl.glColor3f(1.0f, 1.0f, 1.0f);
+    }
 
     public void handleKeyPress() {
 
