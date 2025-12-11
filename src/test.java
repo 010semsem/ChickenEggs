@@ -5,26 +5,20 @@ import javax.swing.*;
 import java.awt.*;
 
 public class test extends JFrame {
-
-    public static void main(String[] args) {
-        new test();
-    }
-
-
+public static Animator animator;
     public test() {
         GLCanvas glcanvas;
-        Animator animator;
 
         AnimListener listener = new Chicken();
         glcanvas = new GLCanvas();
         glcanvas.addGLEventListener(listener);
         glcanvas.addKeyListener(listener);
         getContentPane().add(glcanvas, BorderLayout.CENTER);
-        animator = new FPSAnimator(30);
+        animator = new FPSAnimator(60);
         animator.add(glcanvas);
         animator.start();
 
-        setTitle("Test");
+        setTitle("ChickenEggs");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(700, 700);
         setLocationRelativeTo(null);

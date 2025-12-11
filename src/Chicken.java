@@ -1,4 +1,3 @@
-
 import Texture.TextureReader;
 import java.awt.event.*;
 import java.io.IOException;
@@ -7,12 +6,14 @@ import java.util.BitSet;
 import java.util.Random;
 import javax.media.opengl.glu.GLU;
 import com.sun.opengl.util.GLUT;
+import javax.sound.sampled.*;
+import java.io.File;
 public class Chicken extends AnimListener {
     GLUT glut = new GLUT();
     String highScoreFile = "highscore.txt";
     int maxWidth = 100;
     int maxHeight = 100;
-    int xPlayer = 50, yPlayer = 20;
+    double xPlayer = 50, yPlayer = 18;
 
     Random rand = new Random();
     int chickenCount =5;
@@ -24,7 +25,7 @@ public class Chicken extends AnimListener {
     int[] eggY = new int[chickenCount];
     boolean[] chickenHasEgg = new boolean[chickenCount];
     int activeChicken = -1;
-    int eggSpeed = 1;
+    int eggSpeed = selectedEggSpeed;
 
     int score = 0;
     int highScore = 0;
@@ -34,8 +35,14 @@ public class Chicken extends AnimListener {
 
     int timer = 60;
     long lastTime = System.currentTimeMillis();
+    boolean gameWon = false;
+    boolean paused = false;
 
-    String textureNames[] = {"EggsBasket.png","Egg.png","","","Back.png"};
+    public static int selectedEggSpeed = 1;
+
+    boolean returnToMenu = false;
+
+    String textureNames[] = {"EggsBasket.png","Egg.png","Chicken.png","","backk.png"};
     TextureReader.Texture texture[] = new TextureReader.Texture[textureNames.length];
     int textures[] = new int[textureNames.length];
 
@@ -77,9 +84,6 @@ public class Chicken extends AnimListener {
         long current = System.currentTimeMillis();
         DrawBackground(gl);
         handleKeyPress();
-        for(int i=0; i<chickenCount; i++){
-            DrawSprite(gl, chickenX[i], chickenY, 2, 1);
-        }
 
         DrawSprite(gl, xPlayer,yPlayer, 0, 1);
 
@@ -88,22 +92,39 @@ public class Chicken extends AnimListener {
         }
         if (eggActive && activeChicken != -1) {
 
-            DrawSprite(gl, eggX[activeChicken], eggY[activeChicken], 1, 0.7f);
+            DrawSprite(gl, eggX[activeChicken], eggY[activeChicken], 1, 0.4f);
             updateEgg(activeChicken);
         }
+        for(int i=0; i<chickenCount; i++){
+            DrawSprite(gl, chickenX[i], chickenY, 2, 1.4f);
+        }
+
         drawScore(gl);
 
-        if (current - lastTime >= 1000 && !gameOver) {
+        if (current - lastTime >= 1000 && !gameOver&& !gameWon &&!paused) {
             timer--;
             lastTime = current;
 
             if (timer <= 0) {
-                gameOver = true;
+                if (score >= highScore) {
+                    gameWon = true;
+                } else {
+                    gameOver = true;
+                }
             }
         }
 
         if (gameOver) {
             drawGameOver(gl);
+        }
+        if(gameWon){
+            drawWin(gl);
+        }
+        if (paused) {
+            drawPause(gl);
+        }
+        if (returnToMenu) {
+            openMenu();
         }
     }
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
@@ -157,9 +178,9 @@ public class Chicken extends AnimListener {
     }
 
     public void updateEgg(int index) {
-        if (gameOver) return;
+        if (gameOver||gameWon||paused) return;
         eggY[index] -= eggSpeed;
-        if (eggY[index] <= yPlayer + 10 && eggY[index] >= yPlayer+5 ) {
+        if (eggY[index] <= yPlayer + 2 && eggY[index] >= yPlayer) {
             if (Math.abs(eggX[index] - xPlayer) <10) {
 
                 score++;
@@ -171,6 +192,7 @@ public class Chicken extends AnimListener {
                 chickenHasEgg[index] = false;
                 eggActive = false;
                 activeChicken = -1;
+                playSound("assets/CollectSound.wav");
                 return;
             }
         }
@@ -181,9 +203,12 @@ public class Chicken extends AnimListener {
 
             lives--;
             if (lives <= 0) {
-            gameOver=true;
+                if (score >= highScore) {
+                    gameWon = true;
+                } else {
+                    gameOver = true;
+                }
             }
-            return;
         }
     }
     public void spawnEggFromRandomChicken() {
@@ -192,31 +217,32 @@ public class Chicken extends AnimListener {
         eggY[activeChicken] = chickenY;
         chickenHasEgg[activeChicken] = true;
         eggActive = true;
+        playSound("assets/ChickenSound.wav");
     }
 
     public void drawScore(GL gl) {
-        gl.glColor3f(1.0f, 0.0f, 0.0f);
+        gl.glColor3f(1.0f, 1.0f, 1.0f);
         gl.glRasterPos2f(-0.95f, -0.8f);
         String scoreText = "Score: " + score;
         for (int i = 0; i < scoreText.length(); i++) {
-            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, scoreText.charAt(i));
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, scoreText.charAt(i));
         }
-        String highScoreText = "High Score: " + highScore;
+        String highScoreText = "Highest Score: " + highScore;
         gl.glRasterPos2f(-0.95f, -0.9f);
         for (int i = 0; i < highScoreText.length(); i++) {
-            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, highScoreText.charAt(i));
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, highScoreText.charAt(i));
         }
 
         String livesText = "Lives: " + lives;
         gl.glRasterPos2f(0.7f, -0.9f);
         for (int i = 0; i < livesText.length(); i++) {
-            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, livesText.charAt(i));
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, livesText.charAt(i));
         }
 
         String timerText = "Time: " + timer;
         gl.glRasterPos2f(0.7f, -0.8f);
         for (int i = 0; i < timerText.length(); i++) {
-            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, timerText.charAt(i));
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, timerText.charAt(i));
         }
 
         gl.glColor3f(1.0f, 1.0f, 1.0f);
@@ -252,24 +278,57 @@ public class Chicken extends AnimListener {
         gl.glRasterPos2f(-0.2f, 0);
         String text = "GAME OVER";
         for (int i = 0; i < text.length(); i++) {
-            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, text.charAt(i));
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, text.charAt(i));
         }
         gl.glColor3f(1, 1, 1);
     }
 
+    public void drawWin(GL gl){
+        gl.glColor3f(0, 1, 0);
+        gl.glRasterPos2f(-0.2f, 0);
+        String text = "YOU WIN!";
+        for (int i = 0; i < text.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, text.charAt(i));
+        }
+        gl.glColor3f(1,1,1);
+    }
+    public void drawPause(GL gl) {
+        gl.glColor3f(0, 0, 0);
+        gl.glRasterPos2f(-0.2f, 0);
+        String text = "GAME PAUSED";
+        for (int i = 0; i < text.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_TIMES_ROMAN_24, text.charAt(i));
+        }
+        gl.glColor3f(1, 1, 1);
+    }
+
+    public void playSound(String filename) {
+        try {
+            File soundFile = new File(filename);
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundFile);
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioIn);
+            clip.start();
+        } catch (Exception e) {
+            System.out.println("Error playing sound: " + e.getMessage());
+        }
+    }
     public void handleKeyPress() {
-        if (gameOver) return;
+        if (gameOver||gameWon||paused) return;
         if (isKeyPressed(KeyEvent.VK_LEFT)) {
             if (xPlayer > 5) {
-                xPlayer--;
+                xPlayer-=2;
             }
         }
         if (isKeyPressed(KeyEvent.VK_RIGHT)) {
             if (xPlayer < maxWidth-5) {
-                xPlayer++;
+                xPlayer+=2;
             }
-
         }
+    }
+    public void openMenu() {
+        new GameMenu();
+        test.animator.stop();
     }
 
     public BitSet keyBits = new BitSet(256);
@@ -278,6 +337,12 @@ public class Chicken extends AnimListener {
     public void keyPressed(final KeyEvent event) {
         int keyCode = event.getKeyCode();
         keyBits.set(keyCode);
+        if(isKeyPressed((KeyEvent.VK_P))){
+            paused=!paused;
+        }
+        if (keyCode == KeyEvent.VK_M) {
+            returnToMenu = true;
+        }
     }
 
     @Override
