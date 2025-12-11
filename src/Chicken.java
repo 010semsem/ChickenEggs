@@ -9,7 +9,7 @@ import javax.media.opengl.glu.GLU;
 import com.sun.opengl.util.GLUT;
 public class Chicken extends AnimListener {
     GLUT glut = new GLUT();
-
+    String highScoreFile = "highscore.txt";
     int maxWidth = 100;
     int maxHeight = 100;
     int xPlayer = 50, yPlayer = 20;
@@ -29,6 +29,12 @@ public class Chicken extends AnimListener {
     int score = 0;
     int highScore = 0;
 
+    int lives = 3;
+    boolean gameOver = false;
+
+    int timer = 60;
+    long lastTime = System.currentTimeMillis();
+
     String textureNames[] = {"EggsBasket.png","Egg.png","","","Back.png"};
     TextureReader.Texture texture[] = new TextureReader.Texture[textureNames.length];
     int textures[] = new int[textureNames.length];
@@ -41,7 +47,7 @@ public class Chicken extends AnimListener {
         gl.glEnable(GL.GL_TEXTURE_2D);
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
         gl.glGenTextures(textureNames.length, textures, 0);
-
+        loadHighScore();
         for(int i = 0; i < textureNames.length; i++){
             try {
                 texture[i] = TextureReader.readTexture(assetsFolderName + "//" + textureNames[i] , true);
@@ -64,14 +70,13 @@ public class Chicken extends AnimListener {
     }
 
     public void display(GLAutoDrawable gld) {
-
         GL gl = gld.getGL();
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
         gl.glLoadIdentity();
 
+        long current = System.currentTimeMillis();
         DrawBackground(gl);
         handleKeyPress();
-
         for(int i=0; i<chickenCount; i++){
             DrawSprite(gl, chickenX[i], chickenY, 2, 1);
         }
@@ -87,6 +92,19 @@ public class Chicken extends AnimListener {
             updateEgg(activeChicken);
         }
         drawScore(gl);
+
+        if (current - lastTime >= 1000 && !gameOver) {
+            timer--;
+            lastTime = current;
+
+            if (timer <= 0) {
+                gameOver = true;
+            }
+        }
+
+        if (gameOver) {
+            drawGameOver(gl);
+        }
     }
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
     }
@@ -139,7 +157,7 @@ public class Chicken extends AnimListener {
     }
 
     public void updateEgg(int index) {
-
+        if (gameOver) return;
         eggY[index] -= eggSpeed;
         if (eggY[index] <= yPlayer + 10 && eggY[index] >= yPlayer+5 ) {
             if (Math.abs(eggX[index] - xPlayer) <10) {
@@ -147,6 +165,7 @@ public class Chicken extends AnimListener {
                 score++;
                 if (score > highScore) {
                     highScore = score;
+                    saveHighScore();
                 }
 
                 chickenHasEgg[index] = false;
@@ -159,6 +178,12 @@ public class Chicken extends AnimListener {
             chickenHasEgg[index] = false;
             eggActive = false;
             activeChicken = -1;
+
+            lives--;
+            if (lives <= 0) {
+            gameOver=true;
+            }
+            return;
         }
     }
     public void spawnEggFromRandomChicken() {
@@ -181,11 +206,59 @@ public class Chicken extends AnimListener {
         for (int i = 0; i < highScoreText.length(); i++) {
             glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, highScoreText.charAt(i));
         }
+
+        String livesText = "Lives: " + lives;
+        gl.glRasterPos2f(0.7f, -0.9f);
+        for (int i = 0; i < livesText.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, livesText.charAt(i));
+        }
+
+        String timerText = "Time: " + timer;
+        gl.glRasterPos2f(0.7f, -0.8f);
+        for (int i = 0; i < timerText.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, timerText.charAt(i));
+        }
+
         gl.glColor3f(1.0f, 1.0f, 1.0f);
     }
 
-    public void handleKeyPress() {
+    public void loadHighScore() {
+        try {
+            java.io.File file = new java.io.File(highScoreFile);
+            if (!file.exists()) return;
 
+            java.util.Scanner sc = new java.util.Scanner(file);
+            if (sc.hasNextInt()) {
+                highScore = sc.nextInt();
+            }
+            sc.close();
+        } catch (Exception e) {
+            System.out.println("Error reading high score: " + e.getMessage());
+        }
+    }
+
+    public void saveHighScore() {
+        try {
+            java.io.PrintWriter writer = new java.io.PrintWriter(highScoreFile);
+            writer.println(highScore);
+            writer.close();
+        } catch (Exception e) {
+            System.out.println("Error saving high score: " + e.getMessage());
+        }
+    }
+
+    public void drawGameOver(GL gl){
+        gl.glColor3f(1, 0, 0);
+        gl.glRasterPos2f(-0.2f, 0);
+        String text = "GAME OVER";
+        for (int i = 0; i < text.length(); i++) {
+            glut.glutBitmapCharacter(GLUT.BITMAP_HELVETICA_18, text.charAt(i));
+        }
+        gl.glColor3f(1, 1, 1);
+    }
+
+    public void handleKeyPress() {
+        if (gameOver) return;
         if (isKeyPressed(KeyEvent.VK_LEFT)) {
             if (xPlayer > 5) {
                 xPlayer--;
